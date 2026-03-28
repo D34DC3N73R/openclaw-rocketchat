@@ -22,6 +22,7 @@ export type ResolvedRocketChatAccount = {
   usesLoginAuth: boolean;
   config: RocketChatAccountConfig;
   chatmode?: RocketChatChatMode;
+  conversationWindowMinutes?: number;
   oncharPrefixes?: string[];
   requireMention?: boolean;
   textChunkLimit?: number;

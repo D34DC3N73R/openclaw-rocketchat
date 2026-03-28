@@ -36,6 +36,7 @@ const RocketChatAccountSchemaBase = z
     userId: z.string().optional(),
     baseUrl: z.string().optional(),
     chatmode: z.enum(["oncall", "onmessage", "onchar"]).optional(),
+    conversationWindowMinutes: z.number().int().positive().optional(),
     oncharPrefixes: z.array(z.string()).optional(),
     requireMention: z.boolean().optional(),
     dmPolicy: DmPolicySchema.optional().default("pairing"),

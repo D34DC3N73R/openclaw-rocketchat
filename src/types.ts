@@ -34,6 +34,8 @@ export type RocketChatAccountConfig = {
    */
   chatmode?: RocketChatChatMode;
   /** Prefix characters that trigger onchar mode (default: [">", "!"]). */
+  conversationWindowMinutes?: number;
+  /** Conversation window in minutes for context retention (default: 10). */
   oncharPrefixes?: string[];
   /** Require @mention to respond in channels. Default: true. */
   requireMention?: boolean;

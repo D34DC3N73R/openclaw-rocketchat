@@ -240,6 +240,7 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
     cfg,
     accountId: opts.accountId,
   });
+  const roomLastMentioned = new Map<string, number>();
   const baseUrl = normalizeRocketChatBaseUrl(opts.baseUrl ?? account.baseUrl);
   if (!baseUrl) {
     throw new Error(
@@ -557,10 +558,31 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
     const historyKey = kind === "direct" ? null : sessionKey;
 
     const mentionRegexes = core.channel.mentions.buildMentionRegexes(cfg, route.agentId);
-    const wasMentioned =
+    const directMention =
       kind !== "direct" &&
       ((botUsername ? rawText.toLowerCase().includes(`@${botUsername.toLowerCase()}`) : false) ||
         core.channel.mentions.matchesMentionPatterns(rawText, mentionRegexes));
+    
+    // Update room activity timestamp on direct mention
+    if (directMention && roomId) {
+      roomLastMentioned.set(roomId, Date.now());
+    }
+    
+    // Check if within active conversation window
+    const windowMs = (account.conversationWindowMinutes ?? 0) * 60 * 1000;
+    const withinWindow =
+      windowMs > 0 &&
+      kind !== "direct" &&
+      roomId != null &&
+      (() => {
+        const last = roomLastMentioned.get(roomId);
+        if (!last) return false;
+        const active = Date.now() - last < windowMs;
+        if (active) roomLastMentioned.set(roomId, Date.now()); // slide the window
+        return active;
+      })();
+    
+    const wasMentioned = directMention || withinWindow;
 
     const pendingBody =
       rawText ||
