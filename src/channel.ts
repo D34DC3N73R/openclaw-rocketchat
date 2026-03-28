@@ -5,7 +5,7 @@ import {
   deleteAccountFromConfigSection,
   migrateBaseNameToDefaultAccount,
   setAccountEnabledInConfigSection,
-} from "openclaw/plugin-sdk/account-helpers";
+} from "openclaw/plugin-sdk/core";
 import { formatPairingApproveHint } from "openclaw/plugin-sdk/channel-pairing";
 import { RocketChatConfigSchema } from "./config-schema.js";
 import { resolveRocketChatGroupRequireMention } from "./group-mentions.js";
