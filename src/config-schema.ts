@@ -1,4 +1,4 @@
-import { DmPolicySchema, GroupPolicySchema, MarkdownConfigSchema } from "openclaw/plugin-sdk";
+import { DmPolicySchema, GroupPolicySchema, MarkdownConfigSchema } from "openclaw/plugin-sdk/channel-config-schema";
 import { z } from "zod";
 
 const BlockStreamingCoalesceSchema = z.object({
