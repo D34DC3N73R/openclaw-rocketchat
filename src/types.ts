@@ -1,4 +1,9 @@
-import type { BlockStreamingCoalesceConfig, DmPolicy, GroupPolicy } from "openclaw/plugin-sdk";
+import type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk/channel-config-schema";
+
+export type BlockStreamingCoalesceConfig = {
+  minChars?: number;
+  idleMs?: number;
+};
 
 export type RocketChatChatMode = "oncall" | "onmessage" | "onchar";
 

@@ -1,4 +1,4 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk/core";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 import { rocketchatPlugin } from "./src/channel.js";
 import { setRocketChatRuntime } from "./src/runtime.js";

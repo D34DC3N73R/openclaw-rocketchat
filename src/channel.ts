@@ -1,14 +1,12 @@
+import { buildChannelConfigSchema, type ChannelPlugin } from "openclaw/plugin-sdk/core";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
 import {
   applyAccountNameToChannelSection,
-  buildChannelConfigSchema,
-  DEFAULT_ACCOUNT_ID,
   deleteAccountFromConfigSection,
-  formatPairingApproveHint,
   migrateBaseNameToDefaultAccount,
-  normalizeAccountId,
   setAccountEnabledInConfigSection,
-  type ChannelPlugin,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/account-helpers";
+import { formatPairingApproveHint } from "openclaw/plugin-sdk/channel-pairing";
 import { RocketChatConfigSchema } from "./config-schema.js";
 import { resolveRocketChatGroupRequireMention } from "./group-mentions.js";
 import {

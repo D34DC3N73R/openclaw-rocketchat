@@ -1,5 +1,6 @@
-import type { ChannelOnboardingAdapter, OpenClawConfig, WizardPrompter } from "openclaw/plugin-sdk";
-import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk";
+import type { ChannelOnboardingAdapter, WizardPrompter } from "openclaw/plugin-sdk/channel-setup";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
 import {
   listRocketChatAccountIds,
   resolveDefaultRocketChatAccountId,
