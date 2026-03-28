@@ -139,6 +139,7 @@ export function resolveRocketChatAccount(params: {
     oncharPrefixes: merged.oncharPrefixes,
     requireMention,
     textChunkLimit: merged.textChunkLimit,
+    conversationWindowMinutes: merged.conversationWindowMinutes,
     blockStreaming: merged.blockStreaming,
     blockStreamingCoalesce: merged.blockStreamingCoalesce,
   };
