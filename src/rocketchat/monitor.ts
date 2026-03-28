@@ -11,9 +11,9 @@ import {
   clearHistoryEntriesIfEnabled,
   DEFAULT_GROUP_HISTORY_LIMIT,
   recordPendingHistoryEntryIfEnabled,
-  resolveChannelMediaMaxBytes,
 } from "openclaw/plugin-sdk/channel-runtime";
 import { resolveControlCommandGate } from "openclaw/plugin-sdk/command-auth";
+import { resolveChannelMediaMaxBytes } from "openclaw/plugin-sdk/media-runtime";
 import { getRocketChatRuntime } from "../runtime.js";
 import { resolveRocketChatAccount } from "./accounts.js";
 import {
