@@ -1,11 +1,29 @@
-import {
-  BlockStreamingCoalesceSchema,
-  DmPolicySchema,
-  GroupPolicySchema,
-  MarkdownConfigSchema,
-  requireOpenAllowFrom,
-} from "openclaw/plugin-sdk";
+import { DmPolicySchema, GroupPolicySchema, MarkdownConfigSchema } from "openclaw/plugin-sdk/channel-config-schema";
 import { z } from "zod";
+
+const BlockStreamingCoalesceSchema = z.object({
+  minChars: z.number().int().positive().optional(),
+  idleMs: z.number().int().positive().optional(),
+});
+
+function requireOpenAllowFrom(params: {
+  policy: string | undefined;
+  allowFrom: Array<string | number> | undefined;
+  ctx: z.RefinementCtx;
+  path: string[];
+  message: string;
+}): void {
+  if (params.policy !== "open") return;
+  const list = params.allowFrom ?? [];
+  const hasWildcard = list.some((e) => String(e).trim() === "*");
+  if (!hasWildcard) {
+    params.ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: params.message,
+      path: params.path,
+    });
+  }
+}
 
 const RocketChatAccountSchemaBase = z
   .object({

@@ -1,10 +1,7 @@
-import type {
-  ChannelAccountSnapshot,
-  ChatType,
-  OpenClawConfig,
-  ReplyPayload,
-  RuntimeEnv,
-} from "openclaw/plugin-sdk";
+import type { OpenClawConfig, RuntimeEnv } from "openclaw/plugin-sdk/core";
+import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-status";
+import type { ChatType } from "openclaw/plugin-sdk/channel-contract";
+import type { ReplyPayload, HistoryEntry } from "openclaw/plugin-sdk/channel-reply-pipeline";
 import {
   createReplyPrefixOptions,
   createTypingCallbacks,
@@ -14,10 +11,9 @@ import {
   clearHistoryEntriesIfEnabled,
   DEFAULT_GROUP_HISTORY_LIMIT,
   recordPendingHistoryEntryIfEnabled,
-  resolveControlCommandGate,
-  resolveChannelMediaMaxBytes,
-  type HistoryEntry,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/channel-runtime";
+import { resolveControlCommandGate } from "openclaw/plugin-sdk/command-auth";
+import { resolveChannelMediaMaxBytes } from "openclaw/plugin-sdk/media-runtime";
 import { getRocketChatRuntime } from "../runtime.js";
 import { resolveRocketChatAccount } from "./accounts.js";
 import {
