@@ -319,6 +319,7 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
           fetchImpl: fetchWithAuth,
           filePathHint: file.name ?? file._id,
           maxBytes: mediaMaxBytes,
+          ssrfPolicy: { allowedHostnames: [new URL(client.apiBaseUrl).hostname] },
         });
         const saved = await core.channel.media.saveMediaBuffer(
           fetched.buffer,
@@ -349,6 +350,7 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
           fetchImpl: fetchWithAuth,
           filePathHint: att.title ?? "attachment",
           maxBytes: mediaMaxBytes,
+          ssrfPolicy: { allowedHostnames: [new URL(client.apiBaseUrl).hostname] },
         });
         const saved = await core.channel.media.saveMediaBuffer(
           fetched.buffer,
