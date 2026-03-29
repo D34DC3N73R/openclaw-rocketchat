@@ -7,6 +7,11 @@ export type BlockStreamingCoalesceConfig = {
 
 export type RocketChatChatMode = "oncall" | "onmessage" | "onchar";
 
+export type RocketChatRoomConfig = {
+  /** Keep mention-gated group conversations active for N minutes after a mention. */
+  conversationWindowMinutes?: number;
+};
+
 export type RocketChatAccountConfig = {
   /** Optional display name for this account (used in CLI/UI lists). */
   name?: string;
@@ -37,6 +42,8 @@ export type RocketChatAccountConfig = {
   oncharPrefixes?: string[];
   /** Require @mention to respond in channels. Default: true. */
   requireMention?: boolean;
+  /** Keep mention-gated rooms active for N minutes after a mention. Disabled when unset or 0. */
+  conversationWindowMinutes?: number;
   /** Direct message policy (pairing/allowlist/open/disabled). */
   dmPolicy?: DmPolicy;
   /** Allowlist for direct messages (user ids or @usernames). */
@@ -55,6 +62,8 @@ export type RocketChatAccountConfig = {
   blockStreamingCoalesce?: BlockStreamingCoalesceConfig;
   /** Outbound response prefix override for this channel/account. */
   responsePrefix?: string;
+  /** Optional per-room overrides keyed by Rocket.Chat room id. */
+  rooms?: Record<string, RocketChatRoomConfig>;
 };
 
 export type RocketChatConfig = {

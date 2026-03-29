@@ -14,8 +14,15 @@ import {
 } from "openclaw/plugin-sdk/channel-runtime";
 import { resolveControlCommandGate } from "openclaw/plugin-sdk/command-auth";
 import { resolveChannelMediaMaxBytes } from "openclaw/plugin-sdk/media-runtime";
+import {
+  createConversationWindowTracker,
+  evaluateRocketChatMentionGate,
+} from "../conversation-window.js";
 import { getRocketChatRuntime } from "../runtime.js";
-import { resolveRocketChatAccount } from "./accounts.js";
+import {
+  resolveRocketChatAccount,
+  resolveRocketChatConversationWindowMinutes,
+} from "./accounts.js";
 import {
   createRocketChatClient,
   fetchChannel,
@@ -297,6 +304,7 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
     cfg.messages?.groupChat?.historyLimit ?? DEFAULT_GROUP_HISTORY_LIMIT,
   );
   const channelHistories = new Map<string, HistoryEntry[]>();
+  const conversationWindows = createConversationWindowTracker();
 
   const fetchWithAuth = (input: URL | RequestInfo, init?: RequestInit) => {
     const headers = new Headers(init?.headers);
@@ -601,21 +609,50 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
         accountId: account.accountId,
         groupId: roomId,
       });
-    const shouldBypassMention =
-      isControlCommand && shouldRequireMention && !wasMentioned && commandAuthorized;
-    const effectiveWasMentioned = wasMentioned || shouldBypassMention || oncharTriggered;
+    const conversationWindowMinutes =
+      kind !== "direct"
+        ? resolveRocketChatConversationWindowMinutes({
+            cfg,
+            accountId: account.accountId,
+            roomId,
+          })
+        : 0;
+    const conversationWindowMs =
+      conversationWindowMinutes > 0 ? Math.round(conversationWindowMinutes * 60_000) : 0;
+    const conversationWindowKey = `${account.accountId}:${roomId}`;
+    const conversationActive =
+      kind !== "direct" &&
+      conversationWindowMs > 0 &&
+      conversationWindows.isActive(conversationWindowKey, msgTimestamp ?? Date.now());
     const canDetectMention = Boolean(botUsername) || mentionRegexes.length > 0;
 
-    if (oncharEnabled && !oncharTriggered && !wasMentioned && !isControlCommand) {
+    const mentionGate = evaluateRocketChatMentionGate({
+      kind,
+      shouldRequireMention: Boolean(shouldRequireMention),
+      wasMentioned,
+      isControlCommand,
+      commandAuthorized,
+      oncharEnabled,
+      oncharTriggered,
+      canDetectMention,
+      conversationActive,
+    });
+
+    if (mentionGate.dropReason) {
       recordPendingHistory();
       return;
     }
 
-    if (kind !== "direct" && shouldRequireMention && canDetectMention) {
-      if (!effectiveWasMentioned) {
-        recordPendingHistory();
-        return;
-      }
+    if (
+      kind !== "direct" &&
+      conversationWindowMs > 0 &&
+      (wasMentioned || conversationActive)
+    ) {
+      conversationWindows.activate(
+        conversationWindowKey,
+        conversationWindowMs,
+        msgTimestamp ?? Date.now(),
+      );
     }
 
     const mediaList = await resolveMedia(msg);
@@ -719,7 +756,7 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
       ReplyToId: threadRootId,
       MessageThreadId: threadRootId,
       Timestamp: msgTimestamp,
-      WasMentioned: kind !== "direct" ? effectiveWasMentioned : undefined,
+      WasMentioned: kind !== "direct" ? mentionGate.effectiveWasMentioned : undefined,
       CommandAuthorized: commandAuthorized,
       OriginatingChannel: "rocketchat" as const,
       OriginatingTo: to,
