@@ -9,6 +9,7 @@ Channel plugin for connecting OpenClaw to [Rocket.Chat](https://rocket.chat/) in
 - Direct messages, channels, groups, and thread support
 - Media/file upload and download
 - Mention detection and configurable chat modes
+- Conversation windows for multi-turn room follow-ups after a mention
 - Multi-account support
 - Pairing-based access control
 - Block streaming with coalescing
@@ -84,6 +85,7 @@ export ROCKETCHAT_PASSWORD=your-password
       "baseUrl": "https://chat.example.com",
       "authToken": "your-personal-access-token",
       "userId": "your-user-id",
+      "conversationWindowMinutes": 10,
       "dmPolicy": "open",
       "allowFrom": ["*"]
     }
@@ -101,6 +103,7 @@ export ROCKETCHAT_PASSWORD=your-password
       "baseUrl": "https://chat.example.com",
       "username": "openclaw",
       "password": "your-password",
+      "conversationWindowMinutes": 10,
       "dmPolicy": "open",
       "allowFrom": ["*"]
     }
@@ -119,6 +122,10 @@ channels:
         baseUrl: https://chat.example.com
         authToken: token1
         userId: uid1
+        conversationWindowMinutes: 10
+        rooms:
+          GENERAL_ROOM_ID:
+            conversationWindowMinutes: 20
         allowFrom: ["@admin"]
       secondary:
         baseUrl: https://other-server.com
@@ -142,8 +149,28 @@ channels:
 | `groupAllowFrom` | array | `[]` | Allowed senders in groups/channels |
 | `chatmode` | string | — | `oncall`, `onmessage`, `onchar` |
 | `requireMention` | boolean | `true` | Require @mention in channels |
+| `conversationWindowMinutes` | number | `0` | After a mention, keep a room active for N minutes so follow-ups do not need another mention |
 | `textChunkLimit` | number | `4000` | Max chars per outbound message |
 | `blockStreaming` | boolean | — | Enable/disable block streaming |
+
+### Conversation windows
+
+Set `conversationWindowMinutes` to keep a channel or private group active for follow-up messages after the bot is mentioned.
+
+```yaml
+channels:
+  rocketchat:
+    conversationWindowMinutes: 10
+    rooms:
+      GENERAL_ROOM_ID:
+        conversationWindowMinutes: 20
+      QUIET_ROOM_ID:
+        conversationWindowMinutes: 0
+```
+
+- `0` or unset disables the feature.
+- The timer is refreshed by each accepted follow-up while the room is active.
+- Access control still applies; the conversation window only relaxes the mention requirement.
 
 ## Sending Messages
 
@@ -175,3 +202,4 @@ openclaw send --channel rocketchat --to user:USER_ID "Hello!"
 ## License
 
 MIT
+
