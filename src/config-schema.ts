@@ -6,6 +6,12 @@ const BlockStreamingCoalesceSchema = z.object({
   idleMs: z.number().int().positive().optional(),
 });
 
+const RocketChatRoomSchema = z
+  .object({
+    conversationWindowMinutes: z.number().int().nonnegative().optional(),
+  })
+  .strict();
+
 function requireOpenAllowFrom(params: {
   policy: string | undefined;
   allowFrom: Array<string | number> | undefined;
@@ -38,6 +44,7 @@ const RocketChatAccountSchemaBase = z
     chatmode: z.enum(["oncall", "onmessage", "onchar"]).optional(),
     oncharPrefixes: z.array(z.string()).optional(),
     requireMention: z.boolean().optional(),
+    conversationWindowMinutes: z.number().int().nonnegative().optional(),
     dmPolicy: DmPolicySchema.optional().default("pairing"),
     allowFrom: z.array(z.union([z.string(), z.number()])).optional(),
     groupAllowFrom: z.array(z.union([z.string(), z.number()])).optional(),
@@ -47,6 +54,7 @@ const RocketChatAccountSchemaBase = z
     blockStreaming: z.boolean().optional(),
     blockStreamingCoalesce: BlockStreamingCoalesceSchema.optional(),
     responsePrefix: z.string().optional(),
+    rooms: z.record(z.string(), RocketChatRoomSchema).optional(),
   })
   .strict();
 

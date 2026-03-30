@@ -1,6 +1,10 @@
 import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
-import type { RocketChatAccountConfig, RocketChatChatMode } from "../types.js";
+import type {
+  RocketChatAccountConfig,
+  RocketChatChatMode,
+  RocketChatRoomConfig,
+} from "../types.js";
 import { normalizeRocketChatBaseUrl } from "./client.js";
 
 export type RocketChatTokenSource = "env" | "config" | "none";
@@ -27,6 +31,7 @@ export type ResolvedRocketChatAccount = {
   textChunkLimit?: number;
   blockStreaming?: boolean;
   blockStreamingCoalesce?: RocketChatAccountConfig["blockStreamingCoalesce"];
+  conversationWindowMinutes?: number;
 };
 
 function listConfiguredAccountIds(cfg: OpenClawConfig): string[] {
@@ -72,6 +77,19 @@ function mergeRocketChatAccountConfig(
     {}) as RocketChatAccountConfig & { accounts?: unknown };
   const account = resolveAccountConfig(cfg, accountId) ?? {};
   return { ...base, ...account };
+}
+
+function mergeRocketChatRoomConfig(params: {
+  cfg: OpenClawConfig;
+  accountId: string;
+  accountConfig: RocketChatAccountConfig;
+  roomId: string;
+}): RocketChatRoomConfig {
+  const baseRooms = (params.cfg.channels?.rocketchat as RocketChatAccountConfig | undefined)?.rooms;
+  const accountRooms = params.accountConfig.rooms;
+  const baseRoom = baseRooms?.[params.roomId] ?? {};
+  const accountRoom = accountRooms?.[params.roomId] ?? {};
+  return { ...baseRoom, ...accountRoom };
 }
 
 function resolveRocketChatRequireMention(config: RocketChatAccountConfig): boolean | undefined {
@@ -140,7 +158,31 @@ export function resolveRocketChatAccount(params: {
     textChunkLimit: merged.textChunkLimit,
     blockStreaming: merged.blockStreaming,
     blockStreamingCoalesce: merged.blockStreamingCoalesce,
+    conversationWindowMinutes: merged.conversationWindowMinutes,
   };
+}
+
+export function resolveRocketChatConversationWindowMinutes(params: {
+  cfg: OpenClawConfig;
+  accountId?: string | null;
+  roomId?: string | null;
+}): number {
+  const account = resolveRocketChatAccount({
+    cfg: params.cfg,
+    accountId: params.accountId,
+  });
+  const roomId = params.roomId?.trim();
+  const roomConfig = roomId
+    ? mergeRocketChatRoomConfig({
+        cfg: params.cfg,
+        accountId: account.accountId,
+        accountConfig: account.config,
+        roomId,
+      })
+    : undefined;
+  const minutes = roomConfig?.conversationWindowMinutes ?? account.conversationWindowMinutes;
+  if (typeof minutes !== "number" || !Number.isFinite(minutes)) return 0;
+  return Math.max(0, minutes);
 }
 
 export function listEnabledRocketChatAccounts(cfg: OpenClawConfig): ResolvedRocketChatAccount[] {
