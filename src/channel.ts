@@ -1,4 +1,8 @@
-import { buildChannelConfigSchema, type ChannelPlugin } from "openclaw/plugin-sdk/core";
+import {
+  buildChannelConfigSchema,
+  formatPairingApproveHint,
+  type ChannelPlugin,
+} from "openclaw/plugin-sdk/core";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
 import {
   applyAccountNameToChannelSection,
@@ -6,7 +10,6 @@ import {
   migrateBaseNameToDefaultAccount,
   setAccountEnabledInConfigSection,
 } from "openclaw/plugin-sdk/core";
-import { formatPairingApproveHint } from "openclaw/plugin-sdk/channel-pairing";
 import { RocketChatConfigSchema } from "./config-schema.js";
 import { resolveRocketChatGroupRequireMention } from "./group-mentions.js";
 import {
@@ -20,7 +23,6 @@ import { monitorRocketChatProvider } from "./rocketchat/monitor.js";
 import { probeRocketChat } from "./rocketchat/probe.js";
 import { sendMessageRocketChat } from "./rocketchat/send.js";
 import { looksLikeRocketChatTargetId, normalizeRocketChatMessagingTarget } from "./normalize.js";
-import { rocketchatOnboardingAdapter } from "./onboarding.js";
 import { getRocketChatRuntime } from "./runtime.js";
 
 const meta = {
@@ -57,7 +59,6 @@ function formatAllowEntry(entry: string): string {
 export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
   id: "rocketchat",
   meta: { ...meta },
-  onboarding: rocketchatOnboardingAdapter,
   pairing: {
     idLabel: "rocketchatUserId",
     normalizeAllowEntry: (entry) => normalizeAllowEntry(entry),
@@ -191,7 +192,7 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
     },
     buildChannelSummary: ({ snapshot }) => ({
       configured: snapshot.configured ?? false,
-      authTokenSource: snapshot.authTokenSource ?? "none",
+      tokenSource: snapshot.tokenSource ?? "none",
       running: snapshot.running ?? false,
       connected: snapshot.connected ?? false,
       lastStartAt: snapshot.lastStartAt ?? null,
@@ -215,7 +216,7 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
       name: account.name,
       enabled: account.enabled,
       configured: Boolean(account.authToken && account.userId && account.baseUrl),
-      authTokenSource: account.authTokenSource,
+      tokenSource: account.authTokenSource,
       baseUrl: account.baseUrl,
       running: runtime?.running ?? false,
       connected: runtime?.connected ?? false,
@@ -242,7 +243,7 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
       if (input.useEnv && accountId !== DEFAULT_ACCOUNT_ID) {
         return "Rocket.Chat env vars can only be used for the default account.";
       }
-      const token = input.authToken ?? input.token;
+      const token = input.token ?? input.accessToken;
       const uid = input.userId;
       const baseUrl = input.httpUrl;
       if (!input.useEnv && (!token || !uid || !baseUrl)) {
@@ -254,7 +255,7 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
       return null;
     },
     applyAccountConfig: ({ cfg, accountId, input }) => {
-      const token = input.authToken ?? input.token;
+      const token = input.token ?? input.accessToken;
       const uid = input.userId;
       const baseUrl = input.httpUrl?.trim();
       const namedConfig = applyAccountNameToChannelSection({
@@ -317,7 +318,7 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
       ctx.setStatus({
         accountId: account.accountId,
         baseUrl: account.baseUrl,
-        authTokenSource: account.authTokenSource,
+        tokenSource: account.authTokenSource,
       });
       ctx.log?.info(`[${account.accountId}] starting channel`);
       return monitorRocketChatProvider({

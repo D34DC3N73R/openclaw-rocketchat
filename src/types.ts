@@ -1,4 +1,4 @@
-import type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk/channel-config-schema";
+import type { DmPolicy, GroupPolicy } from "openclaw/plugin-sdk/setup";
 
 export type BlockStreamingCoalesceConfig = {
   minChars?: number;

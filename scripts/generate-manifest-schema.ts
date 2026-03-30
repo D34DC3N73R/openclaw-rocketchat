@@ -12,11 +12,14 @@ const manifestPath = path.join(pluginRoot, "openclaw.plugin.json");
 
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as Record<string, any>;
 
-const jsonSchema = zodToJsonSchema(RocketChatConfigSchema, {
+const jsonSchema = zodToJsonSchema(
+  RocketChatConfigSchema as unknown as Parameters<typeof zodToJsonSchema>[0],
+  {
   name: "RocketChatConfig",
   target: "jsonSchema7",
   $refStrategy: "none",
-});
+  },
+);
 
 manifest.configSchema = jsonSchema;
 

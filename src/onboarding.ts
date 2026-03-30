@@ -1,6 +1,10 @@
-import type { ChannelOnboardingAdapter, WizardPrompter } from "openclaw/plugin-sdk/channel-setup";
-import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
-import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk/account-id";
+import {
+  DEFAULT_ACCOUNT_ID,
+  normalizeAccountId,
+  type ChannelSetupWizardAdapter,
+  type OpenClawConfig,
+  type WizardPrompter,
+} from "openclaw/plugin-sdk/setup";
 import {
   listRocketChatAccountIds,
   resolveDefaultRocketChatAccountId,
@@ -46,7 +50,7 @@ async function promptAccountId(params: {
 
   const entered = await params.prompter.text({
     message: "New Rocket.Chat account id",
-    validate: (value) => (value?.trim() ? undefined : "Required"),
+    validate: (value: string) => (value.trim() ? undefined : "Required"),
   });
   const normalized = normalizeAccountId(String(entered));
   if (String(entered).trim() !== normalized) {
@@ -58,7 +62,7 @@ async function promptAccountId(params: {
   return normalized;
 }
 
-export const rocketchatOnboardingAdapter: ChannelOnboardingAdapter = {
+export const rocketchatOnboardingAdapter: ChannelSetupWizardAdapter = {
   channel,
   getStatus: async ({ cfg }) => {
     const configured = listRocketChatAccountIds(cfg).some((accountId) => {
@@ -119,19 +123,19 @@ export const rocketchatOnboardingAdapter: ChannelOnboardingAdapter = {
         authToken = String(
           await prompter.text({
             message: "Enter Rocket.Chat auth token",
-            validate: (v) => (v?.trim() ? undefined : "Required"),
+            validate: (value: string) => (value.trim() ? undefined : "Required"),
           }),
         ).trim();
         rcUserId = String(
           await prompter.text({
             message: "Enter Rocket.Chat user ID",
-            validate: (v) => (v?.trim() ? undefined : "Required"),
+            validate: (value: string) => (value.trim() ? undefined : "Required"),
           }),
         ).trim();
         baseUrl = String(
           await prompter.text({
             message: "Enter Rocket.Chat base URL",
-            validate: (v) => (v?.trim() ? undefined : "Required"),
+            validate: (value: string) => (value.trim() ? undefined : "Required"),
           }),
         ).trim();
       } else {
@@ -152,19 +156,19 @@ export const rocketchatOnboardingAdapter: ChannelOnboardingAdapter = {
         authToken = String(
           await prompter.text({
             message: "Enter Rocket.Chat auth token",
-            validate: (v) => (v?.trim() ? undefined : "Required"),
+            validate: (value: string) => (value.trim() ? undefined : "Required"),
           }),
         ).trim();
         rcUserId = String(
           await prompter.text({
             message: "Enter Rocket.Chat user ID",
-            validate: (v) => (v?.trim() ? undefined : "Required"),
+            validate: (value: string) => (value.trim() ? undefined : "Required"),
           }),
         ).trim();
         baseUrl = String(
           await prompter.text({
             message: "Enter Rocket.Chat base URL",
-            validate: (v) => (v?.trim() ? undefined : "Required"),
+            validate: (value: string) => (value.trim() ? undefined : "Required"),
           }),
         ).trim();
       }
@@ -172,19 +176,19 @@ export const rocketchatOnboardingAdapter: ChannelOnboardingAdapter = {
       authToken = String(
         await prompter.text({
           message: "Enter Rocket.Chat auth token",
-          validate: (v) => (v?.trim() ? undefined : "Required"),
+          validate: (value: string) => (value.trim() ? undefined : "Required"),
         }),
       ).trim();
       rcUserId = String(
         await prompter.text({
           message: "Enter Rocket.Chat user ID",
-          validate: (v) => (v?.trim() ? undefined : "Required"),
+          validate: (value: string) => (value.trim() ? undefined : "Required"),
         }),
       ).trim();
       baseUrl = String(
         await prompter.text({
           message: "Enter Rocket.Chat base URL",
-          validate: (v) => (v?.trim() ? undefined : "Required"),
+          validate: (value: string) => (value.trim() ? undefined : "Required"),
         }),
       ).trim();
     }
