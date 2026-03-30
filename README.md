@@ -190,6 +190,10 @@ openclaw send --channel rocketchat --to user:USER_ID "Hello!"
 - Authentication via `X-Auth-Token` + `X-User-Id` headers
 - Room types: `c` (channel), `p` (private group), `d` (direct), `l` (livechat)
 
+## Security Notes
+
+Security review notes for scanner findings and manual audits are tracked in `SECURITY.md`.
+
 ## Troubleshooting
 
 - No replies in channels: ensure the bot is in the channel and mention it (oncall), use a trigger prefix (onchar), or set `chatmode: "onmessage"`.
@@ -202,4 +206,3 @@ openclaw send --channel rocketchat --to user:USER_ID "Hello!"
 ## License
 
 MIT
-
