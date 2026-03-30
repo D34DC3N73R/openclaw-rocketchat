@@ -13,12 +13,13 @@ import {
 import { RocketChatConfigSchema } from "./config-schema.js";
 import { resolveRocketChatGroupRequireMention } from "./group-mentions.js";
 import {
+  isRocketChatAccountConfigured,
   listRocketChatAccountIds,
   resolveDefaultRocketChatAccountId,
   resolveRocketChatAccount,
   type ResolvedRocketChatAccount,
 } from "./rocketchat/accounts.js";
-import { normalizeRocketChatBaseUrl } from "./rocketchat/client.js";
+import { loginWithPassword, normalizeRocketChatBaseUrl } from "./rocketchat/client.js";
 import { monitorRocketChatProvider } from "./rocketchat/monitor.js";
 import { probeRocketChat } from "./rocketchat/probe.js";
 import { sendMessageRocketChat } from "./rocketchat/send.js";
@@ -95,12 +96,12 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
         accountId,
         clearBaseFields: ["authToken", "userId", "baseUrl", "name"],
       }),
-    isConfigured: (account) => Boolean(account.authToken && account.userId && account.baseUrl),
+    isConfigured: (account) => isRocketChatAccountConfigured(account),
     describeAccount: (account) => ({
       accountId: account.accountId,
       name: account.name,
       enabled: account.enabled,
-      configured: Boolean(account.authToken && account.userId && account.baseUrl),
+      configured: isRocketChatAccountConfigured(account),
       authTokenSource: account.authTokenSource,
       baseUrl: account.baseUrl,
     }),
@@ -203,19 +204,41 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
       lastProbeAt: snapshot.lastProbeAt ?? null,
     }),
     probeAccount: async ({ account, timeoutMs }) => {
+      const baseUrl = account.baseUrl?.trim();
+      if (!baseUrl) {
+        return { ok: false, error: "baseUrl missing" };
+      }
+
       const token = account.authToken?.trim();
       const uid = account.userId?.trim();
-      const baseUrl = account.baseUrl?.trim();
-      if (!token || !uid || !baseUrl) {
-        return { ok: false, error: "authToken, userId, or baseUrl missing" };
+      if (token && uid) {
+        return await probeRocketChat(baseUrl, token, uid, timeoutMs);
       }
-      return await probeRocketChat(baseUrl, token, uid, timeoutMs);
+
+      const username = account.username?.trim();
+      const password = account.password?.trim();
+      if (!username || !password) {
+        return {
+          ok: false,
+          error: "authToken+userId or username+password missing",
+        };
+      }
+
+      try {
+        const login = await loginWithPassword({ baseUrl, username, password });
+        return await probeRocketChat(baseUrl, login.authToken, login.userId, timeoutMs);
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
     },
     buildAccountSnapshot: ({ account, runtime, probe }) => ({
       accountId: account.accountId,
       name: account.name,
       enabled: account.enabled,
-      configured: Boolean(account.authToken && account.userId && account.baseUrl),
+      configured: isRocketChatAccountConfigured(account),
       tokenSource: account.authTokenSource,
       baseUrl: account.baseUrl,
       running: runtime?.running ?? false,
