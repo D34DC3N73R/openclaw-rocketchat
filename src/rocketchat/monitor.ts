@@ -1,17 +1,21 @@
-import type { OpenClawConfig, RuntimeEnv } from "openclaw/plugin-sdk/core";
-import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-status";
-import type { ChatType } from "openclaw/plugin-sdk/channel-contract";
-import type { ReplyPayload, HistoryEntry } from "openclaw/plugin-sdk/channel-reply-pipeline";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/core";
+import type { RuntimeEnv } from "openclaw/plugin-sdk/runtime-env";
+import type { ChannelAccountSnapshot } from "openclaw/plugin-sdk/channel-contract";
+import type { ChatType } from "openclaw/plugin-sdk/channel-runtime";
+import type { ReplyPayload } from "openclaw/plugin-sdk/reply-runtime";
+import type { HistoryEntry } from "openclaw/plugin-sdk/reply-history";
 import {
   createReplyPrefixOptions,
   createTypingCallbacks,
-  logInboundDrop,
-  logTypingFailure,
+} from "openclaw/plugin-sdk/channel-runtime";
+import { logInboundDrop } from "openclaw/plugin-sdk/channel-inbound";
+import { logTypingFailure } from "openclaw/plugin-sdk/channel-feedback";
+import {
   buildPendingHistoryContextFromMap,
   clearHistoryEntriesIfEnabled,
   DEFAULT_GROUP_HISTORY_LIMIT,
   recordPendingHistoryEntryIfEnabled,
-} from "openclaw/plugin-sdk/channel-runtime";
+} from "openclaw/plugin-sdk/reply-history";
 import { resolveControlCommandGate } from "openclaw/plugin-sdk/command-auth";
 import { resolveChannelMediaMaxBytes } from "openclaw/plugin-sdk/media-runtime";
 import {
@@ -199,6 +203,18 @@ function buildMediaPayload(mediaList: RocketChatMediaInfo[]) {
   };
 }
 
+function requireClientAuth(params: {
+  baseUrl: string;
+  authToken?: string;
+  userId?: string;
+}) {
+  const { baseUrl, authToken, userId } = params;
+  if (!authToken || !userId) {
+    throw new Error("Rocket.Chat auth token and user id are required");
+  }
+  return createRocketChatClient({ baseUrl, authToken, userId });
+}
+
 const DEFAULT_ONCHAR_PREFIXES = [">", "!"];
 
 function resolveOncharPrefixes(prefixes: string[] | undefined): string[] {
@@ -280,7 +296,7 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
     }
   }
 
-  let client = createRocketChatClient({ baseUrl, authToken, userId });
+  let client = requireClientAuth({ baseUrl, authToken, userId });
   const botUser = await fetchMe(client);
   const botUserId = botUser._id;
   const botUsername = botUser.username?.trim() || undefined;
@@ -306,7 +322,7 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
   const channelHistories = new Map<string, HistoryEntry[]>();
   const conversationWindows = createConversationWindowTracker();
 
-  const fetchWithAuth = (input: URL | RequestInfo, init?: RequestInit) => {
+  const fetchWithAuth = (input: URL | string, init?: RequestInit) => {
     const headers = new Headers(init?.headers);
     headers.set("X-Auth-Token", client.authToken);
     headers.set("X-User-Id", client.userId);
@@ -339,7 +355,7 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
         out.push({
           path: saved.path,
           contentType,
-          kind: core.media.mediaKindFromMime(contentType),
+          kind: core.media.mediaKindFromMime(contentType) ?? "unknown",
         });
       } catch (err) {
         logger.debug?.(`rocketchat: failed to download file ${file._id}: ${String(err)}`);
@@ -370,7 +386,7 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
         out.push({
           path: saved.path,
           contentType,
-          kind: core.media.mediaKindFromMime(contentType),
+          kind: core.media.mediaKindFromMime(contentType) ?? "unknown",
         });
       } catch (err) {
         logger.debug?.(`rocketchat: failed to download attachment: ${String(err)}`);
@@ -443,7 +459,12 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
     const configAllowFrom = normalizeAllowList(account.config.allowFrom ?? []);
     const configGroupAllowFrom = normalizeAllowList(account.config.groupAllowFrom ?? []);
     const storeAllowFrom = normalizeAllowList(
-      await core.channel.pairing.readAllowFromStore("rocketchat").catch(() => []),
+      await core.channel.pairing
+        .readAllowFromStore({
+          channel: "rocketchat",
+          accountId: account.accountId,
+        })
+        .catch(() => []),
     );
     const effectiveAllowFrom = Array.from(new Set([...configAllowFrom, ...storeAllowFrom]));
     const effectiveGroupAllowFrom = Array.from(
@@ -493,6 +514,7 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
         if (dmPolicy === "pairing") {
           const { code, created } = await core.channel.pairing.upsertPairingRequest({
             channel: "rocketchat",
+            accountId: account.accountId,
             id: senderId,
             meta: { name: senderName },
           });
@@ -705,7 +727,7 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
         historyKey,
         limit: historyLimit,
         currentMessage: combinedBody,
-        formatEntry: (entry) =>
+        formatEntry: (entry: HistoryEntry) =>
           core.channel.reply.formatInboundEnvelope({
             channel: "Rocket.Chat",
             from: fromLabel,
@@ -927,12 +949,12 @@ export async function monitorRocketChatProvider(opts: MonitorRocketChatOpts = {}
   const connectOnce = async (): Promise<void> => {
     if (reloginNeeded) {
       await relogin();
-      client = createRocketChatClient({ baseUrl, authToken, userId });
+      client = requireClientAuth({ baseUrl, authToken, userId });
       reloginNeeded = false;
     }
     return createRealtimeConnection({
       baseUrl,
-      authToken,
+      authToken: client.authToken,
       abortSignal: opts.abortSignal,
       callbacks: {
         onMessage: (roomId, message) => {

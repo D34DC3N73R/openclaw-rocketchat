@@ -34,6 +34,26 @@ export type ResolvedRocketChatAccount = {
   conversationWindowMinutes?: number;
 };
 
+export function isRocketChatAccountConfigured(account: {
+  baseUrl?: string;
+  authToken?: string;
+  userId?: string;
+  username?: string;
+  password?: string;
+  usesLoginAuth?: boolean;
+}): boolean {
+  if (!account.baseUrl) {
+    return false;
+  }
+  if (account.authToken && account.userId) {
+    return true;
+  }
+  if (account.usesLoginAuth) {
+    return true;
+  }
+  return Boolean(account.username && account.password);
+}
+
 function listConfiguredAccountIds(cfg: OpenClawConfig): string[] {
   const accounts = cfg.channels?.rocketchat?.accounts;
   if (!accounts || typeof accounts !== "object") {
@@ -47,7 +67,7 @@ export function listRocketChatAccountIds(cfg: OpenClawConfig): string[] {
   if (ids.length === 0) {
     return [DEFAULT_ACCOUNT_ID];
   }
-  return ids.toSorted((a, b) => a.localeCompare(b));
+  return [...ids].sort((a, b) => a.localeCompare(b));
 }
 
 export function resolveDefaultRocketChatAccountId(cfg: OpenClawConfig): string {

@@ -1,4 +1,4 @@
-import WebSocket from "ws";
+import WebSocket, { type RawData } from "ws";
 import type { RocketChatMessage } from "./client.js";
 
 export type DDPMessage = {
@@ -100,7 +100,7 @@ export function createRealtimeConnection(params: {
       });
     });
 
-    ws.on("message", (raw) => {
+    ws.on("message", (raw: RawData) => {
       // Any incoming message proves the connection is alive — reset watchdog
       resetWatchdog();
 
@@ -179,7 +179,7 @@ export function createRealtimeConnection(params: {
       }
     });
 
-    ws.on("close", (code, reason) => {
+    ws.on("close", (code: number, reason: Buffer) => {
       clearWatchdog();
       cleanup();
       const reasonStr = reason?.toString("utf8") ?? "";
@@ -191,7 +191,7 @@ export function createRealtimeConnection(params: {
       }
     });
 
-    ws.on("error", (err) => {
+    ws.on("error", (err: Error) => {
       callbacks.onError?.(err);
       ws.close();
     });

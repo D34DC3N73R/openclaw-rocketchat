@@ -6,60 +6,54 @@ Channel plugin for connecting OpenClaw to [Rocket.Chat](https://rocket.chat/) in
 
 ## Features
 
-- Direct messages, channels, groups, and thread support
+- Direct messages, channels, private groups, and threads
 - Media/file upload and download
-- Mention detection and configurable chat modes
-- Conversation windows for multi-turn room follow-ups after a mention
+- Mention-gated channel behavior, `onmessage`, and `onchar` trigger modes
+- Conversation windows for follow-up messages after a mention or trigger
 - Multi-account support
-- Pairing-based access control
-- Block streaming with coalescing
-- WebSocket (DDP) realtime message monitoring with auto-reconnect
+- Pairing-based DM access control
+- Block streaming with configurable coalescing
+- DDP WebSocket realtime monitoring with auto-reconnect
 
 ## Setup
 
-### Secret storage (recommended)
+### Authentication methods
 
-Prefer environment variables for secrets (token/password) rather than committing them into `openclaw.json`.
+The plugin supports both Rocket.Chat auth paths:
 
-OpenClaw loads env vars from:
-- the Gateway process environment (systemd/launchd/etc), and
-- `~/.openclaw/.env` as a standard global fallback.
+- **Personal Access Token (PAT):** configure `authToken` + `userId`
+- **Username/password login:** configure `username` + `password`
 
-See: OpenClaw docs “Environment variables”.
+PAT is usually the better choice when your Rocket.Chat plan exposes Personal Access Tokens. Username/password works on plans where PAT is unavailable.
 
-### 1. Authentication
+### Secret storage
 
-The plugin supports two authentication methods:
+Prefer environment variables for secrets instead of committing them into `openclaw.json`.
 
-#### Method A: Personal Access Token (recommended for plans that support it)
+OpenClaw can load env vars from:
 
-1. Go to **My Account → Personal Access Tokens** in your Rocket.Chat instance
-2. Create a new token — note both the **Token** and your **User ID**
+- the gateway process environment
+- `~/.openclaw/.env`
 
-> **Note:** Personal Access Tokens may not be available on all Rocket.Chat plans (e.g., Starter).
+### Base URL
 
-#### Method B: Username/Password Login (works on all plans)
+Use the Rocket.Chat server base URL, for example:
 
-If PAT is not available, use username/password. The plugin will call `/api/v1/login` to obtain a session token automatically.
+- `https://chat.example.com`
 
-### 2. Configure OpenClaw
+Do not use `/api/v1` in config examples unless you want to; the plugin strips a trailing slash and also normalizes a trailing `/api/v1`.
 
-#### Environment variables (default account)
+### Important config rules
 
-Set these on the gateway host (for systemd/launchd installs you can put them in `~/.openclaw/.env`):
+- The bot user must already be a member of channels or private groups you want it to monitor.
+- Only the **default** Rocket.Chat account can read `ROCKETCHAT_*` environment variables.
+- Config values override env vars **field by field**.
+- If you define `channels.rocketchat.accounts`, the top-level `channels.rocketchat` values still act as shared defaults for those named accounts unless a per-account value overrides them.
+- A Rocket.Chat account is considered configured when it has `baseUrl` plus either `authToken` + `userId` or `username` + `password`.
 
-- `ROCKETCHAT_URL=https://chat.example.com`
-- `ROCKETCHAT_AUTH_TOKEN=...`
-- `ROCKETCHAT_USER_ID=...`
+### Option A: Default account from environment variables
 
-If you use login auth instead of a Personal Access Token:
-
-- `ROCKETCHAT_USERNAME=...`
-- `ROCKETCHAT_PASSWORD=...`
-
-Env vars apply only to the **default** account. Other accounts must use config values under `channels.rocketchat.accounts`.
-
-#### Option A: Environment Variables (PAT)
+PAT:
 
 ```bash
 export ROCKETCHAT_URL=https://chat.example.com
@@ -67,15 +61,17 @@ export ROCKETCHAT_AUTH_TOKEN=your-personal-access-token
 export ROCKETCHAT_USER_ID=your-user-id
 ```
 
-#### Option B: Environment Variables (Username/Password)
+Username/password:
 
 ```bash
 export ROCKETCHAT_URL=https://chat.example.com
-export ROCKETCHAT_USERNAME=openclaw
+export ROCKETCHAT_USERNAME=openclaw-bot
 export ROCKETCHAT_PASSWORD=your-password
 ```
 
-#### Option C: Config File (PAT)
+### Option B: Default account in `openclaw.json`
+
+PAT:
 
 ```json
 {
@@ -84,16 +80,13 @@ export ROCKETCHAT_PASSWORD=your-password
       "enabled": true,
       "baseUrl": "https://chat.example.com",
       "authToken": "your-personal-access-token",
-      "userId": "your-user-id",
-      "conversationWindowMinutes": 10,
-      "dmPolicy": "open",
-      "allowFrom": ["*"]
+      "userId": "your-user-id"
     }
   }
 }
 ```
 
-#### Option D: Config File (Username/Password)
+Username/password:
 
 ```json
 {
@@ -101,107 +94,172 @@ export ROCKETCHAT_PASSWORD=your-password
     "rocketchat": {
       "enabled": true,
       "baseUrl": "https://chat.example.com",
-      "username": "openclaw",
-      "password": "your-password",
-      "conversationWindowMinutes": 10,
-      "dmPolicy": "open",
-      "allowFrom": ["*"]
+      "username": "openclaw-bot",
+      "password": "your-password"
     }
   }
 }
 ```
 
-### 3. Multi-Account Setup
+### Option C: Multi-account config
+
+Named accounts are config-only. `ROCKETCHAT_*` env vars do not apply to them.
+
+This example also shows shared top-level defaults inherited by each account:
 
 ```yaml
 channels:
   rocketchat:
     enabled: true
+    chatmode: oncall
+    conversationWindowMinutes: 10
+    groupPolicy: allowlist
     accounts:
       primary:
         baseUrl: https://chat.example.com
-        authToken: token1
-        userId: uid1
-        conversationWindowMinutes: 10
+        authToken: token-1
+        userId: user-1
+        allowFrom: ["@admin"]
+      secondary:
+        baseUrl: https://other-chat.example.com
+        username: openclaw-bot
+        password: secret
+        chatmode: onchar
+        oncharPrefixes: ["!"]
         rooms:
           GENERAL_ROOM_ID:
             conversationWindowMinutes: 20
-        allowFrom: ["@admin"]
-      secondary:
-        baseUrl: https://other-server.com
-        authToken: token2
-        userId: uid2
-        allowFrom: ["@user"]
 ```
 
-## Configuration Options
+## Configuration Reference
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `baseUrl` | string | — | Rocket.Chat server URL |
-| `authToken` | string | — | Personal access token |
-| `userId` | string | — | Bot user's ID |
-| `username` | string | — | Username for login auth (alternative to PAT) |
-| `password` | string | — | Password for login auth (alternative to PAT) |
-| `dmPolicy` | string | `"pairing"` | `pairing`, `allowlist`, `open`, `disabled` |
-| `allowFrom` | array | `[]` | Allowed user IDs or @usernames for DMs |
-| `groupPolicy` | string | `"allowlist"` | `allowlist`, `open`, `disabled` |
-| `groupAllowFrom` | array | `[]` | Allowed senders in groups/channels |
-| `chatmode` | string | — | `oncall`, `onmessage`, `onchar` |
-| `requireMention` | boolean | `true` | Require @mention in channels |
-| `conversationWindowMinutes` | number | `0` | After a mention, keep a room active for N minutes so follow-ups do not need another mention |
-| `textChunkLimit` | number | `4000` | Max chars per outbound message |
-| `blockStreaming` | boolean | — | Enable/disable block streaming |
+The same account-level options can be set either:
 
-### Conversation windows
+- at `channels.rocketchat.*` for the default/shared config
+- at `channels.rocketchat.accounts.<accountId>.*` for a named account
 
-Set `conversationWindowMinutes` to keep a channel or private group active for follow-up messages after the bot is mentioned.
+### Authentication and connection
 
-```yaml
-channels:
-  rocketchat:
-    conversationWindowMinutes: 10
-    rooms:
-      GENERAL_ROOM_ID:
-        conversationWindowMinutes: 20
-      QUIET_ROOM_ID:
-        conversationWindowMinutes: 0
-```
+| Option | Type | Description |
+|--------|------|-------------|
+| `enabled` | boolean | Enables or disables the channel or account. Default is enabled. |
+| `name` | string | Optional display name for the account in CLI/UI lists. |
+| `baseUrl` | string | Rocket.Chat base URL such as `https://chat.example.com`. |
+| `authToken` | string | Personal Access Token. |
+| `userId` | string | Rocket.Chat user ID paired with `authToken`. |
+| `username` | string | Username for login auth instead of PAT. |
+| `password` | string | Password for login auth instead of PAT. |
 
-- `0` or unset disables the feature.
-- The timer is refreshed by each accepted follow-up while the room is active.
-- Access control still applies; the conversation window only relaxes the mention requirement.
+### Inbound trigger behavior
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `chatmode` | string | `oncall`, `onmessage`, or `onchar`. |
+| `oncharPrefixes` | string[] | Prefixes that trigger `chatmode: onchar`. Default: `">"` and `"!"`. |
+| `requireMention` | boolean | Mention gate for groups/channels when `chatmode` does not force behavior. |
+| `conversationWindowMinutes` | number | Keeps a room active for follow-up messages after a valid mention/trigger. `0` or unset disables it. |
+| `rooms.<roomId>.conversationWindowMinutes` | number | Per-room override for the conversation window. |
+
+Behavior notes:
+
+- Direct messages are not mention-gated.
+- `chatmode: oncall` effectively requires a mention in channels/groups.
+- `chatmode: onmessage` effectively disables mention gating in channels/groups.
+- `chatmode: onchar` accepts channel/group messages that start with a configured prefix, and strips that prefix before sending the message to OpenClaw.
+- Conversation windows only relax the mention/trigger requirement; they do not bypass access-control policy.
+
+### Access control
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `dmPolicy` | string | DM policy: `pairing`, `allowlist`, `open`, or `disabled`. Default: `pairing`. |
+| `allowFrom` | array | Allowed DM senders as Rocket.Chat user IDs, `user:ID`, `rocketchat:ID`, plain usernames, or `@username`. |
+| `groupPolicy` | string | Group/channel policy: `allowlist`, `open`, or `disabled`. Default: `allowlist`. |
+| `groupAllowFrom` | array | Allowed senders in channels/private groups. |
+
+Important:
+
+- If `dmPolicy` is `open`, `allowFrom` must include `"*"` or schema validation fails.
+- `allowFrom` and `groupAllowFrom` comparisons are case-insensitive for usernames.
+
+### Outbound reply behavior
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `textChunkLimit` | number | Maximum characters per outbound text message. Default: `4000`. |
+| `chunkMode` | string | Outbound chunking mode: `length` or `newline`. |
+| `blockStreaming` | boolean | Enables or disables block streaming for this channel/account. |
+| `blockStreamingCoalesce.minChars` | number | Minimum buffered characters before a streamed block reply is flushed. |
+| `blockStreamingCoalesce.idleMs` | number | Idle timeout before a buffered streamed block reply is flushed. |
+| `responsePrefix` | string | Optional outbound reply prefix override for this channel/account. |
+| `markdown` | object | Standard OpenClaw markdown configuration for this channel/account. |
+
+Current streaming defaults for Rocket.Chat:
+
+- `blockStreamingCoalesce.minChars`: `1500`
+- `blockStreamingCoalesce.idleMs`: `1000`
+
+Delivery notes:
+
+- Long text replies are split into sequential Rocket.Chat messages.
+- `chunkMode: newline` splits more aggressively than `chunkMode: length`.
+- If media upload fails and the media source was an `http://` or `https://` URL, the plugin falls back to sending the URL as text.
+
+### Miscellaneous
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `configWrites` | boolean | Allows channel-initiated config writes. |
+| `capabilities` | string[] | Optional capability tags used for agent/runtime guidance. |
 
 ## Sending Messages
 
 ```bash
-# Send to a channel
-openclaw send --channel rocketchat --to channel:ROOM_ID "Hello!"
+# Send to a room id directly
+openclaw send --channel rocketchat --to ROOM_ID "Hello"
+
+# Send to a room id with an explicit prefix
+openclaw send --channel rocketchat --to channel:ROOM_ID "Hello"
 
 # Send to a user
-openclaw send --channel rocketchat --to @username "Hello!"
-openclaw send --channel rocketchat --to user:USER_ID "Hello!"
+openclaw send --channel rocketchat --to @username "Hello"
+openclaw send --channel rocketchat --to user:USER_ID "Hello"
 ```
+
+Accepted `--to` formats:
+
+- `ROOM_ID`
+- `channel:ROOM_ID`
+- `@username`
+- `user:USER_ID`
+- `rocketchat:USER_ID`
+
+When sending to a user, the plugin creates or reuses a Rocket.Chat DM room for that user.
 
 ## Architecture
 
-- **DDP WebSocket** for realtime message reception (stream-room-messages)
-- **REST API** for sending messages, file uploads, user/room info
-- Authentication via `X-Auth-Token` + `X-User-Id` headers
-- Room types: `c` (channel), `p` (private group), `d` (direct), `l` (livechat)
-
-## Security Notes
-
-Security review notes for scanner findings and manual audits are tracked in `SECURITY.md`.
+- DDP WebSocket for realtime inbound messages
+- Rocket.Chat REST API for login, sending messages, uploads, user lookup, and room lookup
+- Threads are sent with Rocket.Chat `tmid`
+- Room types handled: channels (`c`), private groups (`p`), direct messages (`d`), and livechat (`l`)
 
 ## Troubleshooting
 
-- No replies in channels: ensure the bot is in the channel and mention it (oncall), use a trigger prefix (onchar), or set `chatmode: "onmessage"`.
-- Auth/token issues:
-  - **Preferred (recommended):** use a Rocket.Chat **Personal Access Token (PAT)** (`ROCKETCHAT_AUTH_TOKEN` + `ROCKETCHAT_USER_ID`). PATs are typically long-lived until revoked.
-  - **Alternative:** configure `ROCKETCHAT_USERNAME` + `ROCKETCHAT_PASSWORD`. The plugin logs in via `/api/v1/login` and will re-login automatically if the session token expires.
-  - If you manually generated a login session token and pasted it into config without also providing username/password, that token may expire based on your Rocket.Chat server settings (often ~90 days). In that case prefer PAT or store username/password so the plugin can refresh automatically.
-- Multi-account issues: env vars only apply to the `default` account.
+- No replies in channels:
+  - make sure the bot user is in the room
+  - `chatmode: oncall` requires a mention unless a conversation window is active
+  - `chatmode: onchar` requires a configured prefix such as `!hello`
+  - `chatmode: onmessage` replies to accepted channel/group messages without a mention
+- Auth problems:
+  - PAT mode needs both `authToken` and `userId`
+  - login mode needs both `username` and `password`
+  - the plugin logs in through `/api/v1/login` when using username/password and can log in again later if needed
+  - env vars only apply to the default account
+- Base URL problems:
+  - use the server base URL, not a deep REST path
+  - trailing `/` and `/api/v1` are normalized away
+
+Security review notes for scanner findings and manual audits are tracked in `SECURITY.md`.
 
 ## License
 

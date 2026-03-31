@@ -1,4 +1,4 @@
-import type { ChannelGroupContext } from "openclaw/plugin-sdk/channel-policy";
+import type { ChannelGroupContext } from "openclaw/plugin-sdk/channel-contract";
 import { resolveRocketChatAccount } from "./rocketchat/accounts.js";
 
 export function resolveRocketChatGroupRequireMention(

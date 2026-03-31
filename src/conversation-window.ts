@@ -1,4 +1,4 @@
-import type { ChatType } from "openclaw/plugin-sdk/channel-contract";
+import type { ChatType } from "openclaw/plugin-sdk/channel-runtime";
 
 export type RocketChatMentionGateInput = {
   kind: ChatType;
