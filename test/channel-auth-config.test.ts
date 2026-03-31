@@ -32,6 +32,27 @@ test("username/password account is treated as configured", () => {
   assert.equal(snapshot.configured, true);
 });
 
+test("setup wizard status treats username/password account as configured", async () => {
+  const configured = await rocketchatPlugin.setupWizard?.status.resolveConfigured({
+    cfg: {
+      channels: {
+        rocketchat: {
+          accounts: {
+            default: {
+              baseUrl: "https://chat.example.com",
+              username: "bot-test",
+              password: "secret",
+              enabled: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  assert.equal(configured, true);
+});
+
 test("probeAccount supports username/password login", async () => {
   const account = resolveRocketChatAccount({
     cfg: {

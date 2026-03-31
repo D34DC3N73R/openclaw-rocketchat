@@ -21,6 +21,7 @@ import {
 } from "./rocketchat/accounts.js";
 import { loginWithPassword, normalizeRocketChatBaseUrl } from "./rocketchat/client.js";
 import { monitorRocketChatProvider } from "./rocketchat/monitor.js";
+import { rocketchatSetupWizard } from "./onboarding.js";
 import { probeRocketChat } from "./rocketchat/probe.js";
 import { sendMessageRocketChat } from "./rocketchat/send.js";
 import { looksLikeRocketChatTargetId, normalizeRocketChatMessagingTarget } from "./normalize.js";
@@ -60,6 +61,7 @@ function formatAllowEntry(entry: string): string {
 export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
   id: "rocketchat",
   meta: { ...meta },
+  setupWizard: rocketchatSetupWizard,
   pairing: {
     idLabel: "rocketchatUserId",
     normalizeAllowEntry: (entry) => normalizeAllowEntry(entry),
