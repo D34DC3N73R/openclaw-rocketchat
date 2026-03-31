@@ -56,7 +56,7 @@ export type MonitorRocketChatOpts = {
 
 type MediaKind = "image" | "audio" | "video" | "document" | "unknown";
 
-const RECENT_MESSAGE_TTL_MS = 5 * 60_000;
+const RECENT_MESSAGE_TTL_MS = 60 * 60_000;
 const RECENT_MESSAGE_MAX = 2000;
 const ROOM_CACHE_TTL_MS = 5 * 60_000;
 const USER_CACHE_TTL_MS = 10 * 60_000;
