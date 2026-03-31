@@ -151,6 +151,7 @@ channels:
 | `requireMention` | boolean | `true` | Require @mention in channels |
 | `conversationWindowMinutes` | number | `0` | After a mention, keep a room active for N minutes so follow-ups do not need another mention |
 | `textChunkLimit` | number | `4000` | Max chars per outbound message |
+| `chunkMode` | string | `"length"` | Outbound chunking mode: `length` or `newline` |
 | `blockStreaming` | boolean | — | Enable/disable block streaming |
 
 ### Conversation windows
@@ -171,6 +172,24 @@ channels:
 - `0` or unset disables the feature.
 - The timer is refreshed by each accepted follow-up while the room is active.
 - Access control still applies; the conversation window only relaxes the mention requirement.
+
+### Reply delivery behavior
+
+Rocket.Chat replies may be delivered as multiple messages that appear almost at once.
+
+- The plugin sends outbound chunks sequentially after a reply is ready.
+- `textChunkLimit` controls the maximum size of each outbound message.
+- `chunkMode: "newline"` splits more aggressively than `chunkMode: "length"` and often produces several short messages.
+- Block streaming is coalesced by default, so streamed model output is usually merged before delivery rather than sent token-by-token.
+
+If you want fewer split messages, prefer:
+
+```yaml
+channels:
+  rocketchat:
+    textChunkLimit: 4000
+    chunkMode: length
+```
 
 ## Sending Messages
 
