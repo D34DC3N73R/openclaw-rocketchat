@@ -265,8 +265,11 @@ export async function uploadFile(
       tmid: params.tmid ?? undefined,
       attachments: [
         {
-          audio_url: uploadData.file.url,
+          audio_url: uploadData.file.url.startsWith("http")
+            ? uploadData.file.url
+            : `${client.baseUrl}${uploadData.file.url}`,
           title: params.fileName,
+          type: "file",
         },
       ],
     }),
