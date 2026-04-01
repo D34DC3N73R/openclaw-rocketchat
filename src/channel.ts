@@ -26,6 +26,7 @@ import { probeRocketChat } from "./rocketchat/probe.js";
 import { sendMessageRocketChat } from "./rocketchat/send.js";
 import { looksLikeRocketChatTargetId, normalizeRocketChatMessagingTarget } from "./normalize.js";
 import { getRocketChatRuntime } from "./runtime.js";
+import type { ChannelMessageActionAdapter } from "openclaw/plugin-sdk/signal";
 
 const meta = {
   id: "rocketchat",
@@ -57,6 +58,40 @@ function formatAllowEntry(entry: string): string {
   }
   return trimmed.replace(/^(rocketchat|user):/i, "").toLowerCase();
 }
+
+const rocketchatMessageActions: ChannelMessageActionAdapter = {
+  describeMessageTool() {
+    return {
+      actions: ["send"],
+      capabilities: ["media"],
+    };
+  },
+  supportsAction({ action }) {
+    return action === "send";
+  },
+  async handleAction(ctx) {
+    const params = ctx.params as {
+      to?: string;
+      message?: string;
+      threadId?: string;
+      accountId?: string;
+      mediaUrl?: string;
+    };
+    const to = params.to?.trim();
+    if (!to) {
+      return { content: [{ type: "text", text: "to is required" }] };
+    }
+    const result = await sendMessageRocketChat(to, params.message ?? "", {
+      accountId: params.accountId ?? ctx.accountId ?? undefined,
+      replyToId: params.threadId ?? undefined,
+      mediaUrl: params.mediaUrl ?? undefined,
+      mediaAccess: ctx.mediaAccess,
+      mediaLocalRoots: ctx.mediaLocalRoots,
+      mediaReadFile: ctx.mediaReadFile,
+    });
+    return { content: [{ type: "text", text: `delivered to ${to}` }], details: result };
+  },
+};
 
 export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
   id: "rocketchat",
@@ -149,6 +184,7 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
       hint: "<roomId|user:ID|channel:ID|@username>",
     },
   },
+  actions: rocketchatMessageActions,
   outbound: {
     deliveryMode: "direct",
     chunker: (text, limit) => getRocketChatRuntime().channel.text.chunkMarkdownText(text, limit),
