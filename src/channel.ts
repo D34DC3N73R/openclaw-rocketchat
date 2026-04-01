@@ -209,10 +209,13 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
       });
       return { channel: "rocketchat", ...result };
     },
-    sendMedia: async ({ to, text, mediaUrl, accountId, replyToId }) => {
+    sendMedia: async ({ to, text, mediaUrl, mediaAccess, mediaLocalRoots, mediaReadFile, accountId, replyToId }) => {
       const result = await sendMessageRocketChat(to, text, {
         accountId: accountId ?? undefined,
         mediaUrl,
+        mediaAccess,
+        mediaLocalRoots,
+        mediaReadFile,
         replyToId: replyToId ?? undefined,
       });
       return { channel: "rocketchat", ...result };
