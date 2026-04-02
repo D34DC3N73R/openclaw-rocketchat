@@ -174,10 +174,18 @@ export async function sendMessageRocketChat(
 
   if (mediaUrl) {
     try {
+      const configuredMaxMb =
+        account.config.mediaMaxMb ??
+        cfg.channels?.rocketchat?.mediaMaxMb;
+      const maxBytes = configuredMaxMb && configuredMaxMb > 0
+        ? configuredMaxMb * 1024 * 1024
+        : undefined;
+      
       const media = await loadWebMedia(mediaUrl, buildOutboundMediaLoadOptions({
         mediaAccess: opts.mediaAccess,
         mediaLocalRoots: opts.mediaLocalRoots,
         mediaReadFile: opts.mediaReadFile,
+        maxBytes,
       }));
       const result = await uploadFile(client, {
         roomId,

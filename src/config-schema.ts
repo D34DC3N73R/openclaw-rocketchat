@@ -9,6 +9,7 @@ const BlockStreamingCoalesceSchema = z.object({
 const RocketChatRoomSchema = z
   .object({
     conversationWindowMinutes: z.number().int().nonnegative().optional(),
+    mediaMaxMb: z.number().positive().optional(),
   })
   .strict();
 
@@ -45,6 +46,7 @@ const RocketChatAccountSchemaBase = z
     oncharPrefixes: z.array(z.string()).optional(),
     requireMention: z.boolean().optional(),
     conversationWindowMinutes: z.number().int().nonnegative().optional(),
+    mediaMaxMb: z.number().positive().optional(),
     dmPolicy: DmPolicySchema.optional().default("pairing"),
     allowFrom: z.array(z.union([z.string(), z.number()])).optional(),
     groupAllowFrom: z.array(z.union([z.string(), z.number()])).optional(),
