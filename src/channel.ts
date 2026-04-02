@@ -26,6 +26,7 @@ import { probeRocketChat } from "./rocketchat/probe.js";
 import { sendMessageRocketChat } from "./rocketchat/send.js";
 import { looksLikeRocketChatTargetId, normalizeRocketChatMessagingTarget } from "./normalize.js";
 import { getRocketChatRuntime } from "./runtime.js";
+import { Type } from "@sinclair/typebox";
 import type { ChannelMessageActionAdapter } from "openclaw/plugin-sdk/signal";
 
 const meta = {
@@ -64,6 +65,13 @@ const rocketchatMessageActions: ChannelMessageActionAdapter = {
     return {
       actions: ["send"],
       capabilities: ["media"],
+      schema: {
+        visibility: "current-channel",
+        properties: {
+          path: Type.Optional(Type.String({ description: "Local file path to send as an attachment" })),
+          mediaUrl: Type.Optional(Type.String({ description: "URL of media to send as an attachment" })),
+        },
+      },
     };
   },
   supportsAction({ action }) {
