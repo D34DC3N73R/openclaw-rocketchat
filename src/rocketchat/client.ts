@@ -250,7 +250,33 @@ export async function uploadFile(
     throw new Error("Rocket.Chat file upload failed: no file URL returned");
   }
 
-  // Step 2: Post message with audio attachment
+  // Step 2: Determine attachment type and absolute URL
+  const mimeType = params.contentType ?? "";
+  const fileName = params.fileName ?? "";
+  const isAudio = mimeType.startsWith("audio/") || /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(fileName);
+  const isVideo = mimeType.startsWith("video/") || /\.(mp4|webm|mov|avi|mkv)$/i.test(fileName);
+  const isImage = mimeType.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(fileName);
+
+  const absoluteUrl = uploadData.file.url.startsWith("http")
+    ? uploadData.file.url
+    : `${client.baseUrl}${uploadData.file.url}`;
+
+  const attachment: Record<string, unknown> = {
+    title: fileName,
+    type: "file",
+  };
+  if (isAudio) {
+    attachment.audio_url = absoluteUrl;
+  } else if (isVideo) {
+    attachment.video_url = absoluteUrl;
+  } else if (isImage) {
+    attachment.image_url = absoluteUrl;
+  } else {
+    attachment.title_link = absoluteUrl;
+    attachment.title_link_download = true;
+  }
+
+  // Step 3: Post message with attachment
   const msgUrl = `${client.apiBaseUrl}/chat.postMessage`;
   const msgRes = await fetch(msgUrl, {
     method: "POST",
@@ -263,15 +289,7 @@ export async function uploadFile(
       roomId: params.roomId,
       text: params.description ?? "",
       tmid: params.tmid ?? undefined,
-      attachments: [
-        {
-          audio_url: uploadData.file.url.startsWith("http")
-            ? uploadData.file.url
-            : `${client.baseUrl}${uploadData.file.url}`,
-          title: params.fileName,
-          type: "file",
-        },
-      ],
+      attachments: [attachment],
     }),
   });
   if (!msgRes.ok) {
