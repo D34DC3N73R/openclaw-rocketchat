@@ -13,6 +13,8 @@ import {
   normalizeRocketChatBaseUrl,
   type RocketChatUser,
 } from "./client.js";
+import { buildOutboundMediaLoadOptions } from "openclaw/plugin-sdk/media-runtime";
+import { loadWebMedia } from "openclaw/plugin-sdk/web-media";
 
 export type RocketChatSendOpts = {
   authToken?: string;
@@ -21,6 +23,9 @@ export type RocketChatSendOpts = {
   accountId?: string;
   mediaUrl?: string;
   replyToId?: string;
+  mediaAccess?: { localRoots?: readonly string[]; readFile?: (filePath: string) => Promise<Buffer> };
+  mediaLocalRoots?: readonly string[];
+  mediaReadFile?: (filePath: string) => Promise<Buffer>;
 };
 
 export type RocketChatSendResult = {
@@ -169,7 +174,19 @@ export async function sendMessageRocketChat(
 
   if (mediaUrl) {
     try {
-      const media = await core.media.loadWebMedia(mediaUrl);
+      const configuredMaxMb =
+        account.config.mediaMaxMb ??
+        cfg.channels?.rocketchat?.mediaMaxMb;
+      const maxBytes = configuredMaxMb && configuredMaxMb > 0
+        ? configuredMaxMb * 1024 * 1024
+        : undefined;
+      
+      const media = await loadWebMedia(mediaUrl, buildOutboundMediaLoadOptions({
+        mediaAccess: opts.mediaAccess,
+        mediaLocalRoots: opts.mediaLocalRoots,
+        mediaReadFile: opts.mediaReadFile,
+        maxBytes,
+      }));
       const result = await uploadFile(client, {
         roomId,
         buffer: media.buffer,

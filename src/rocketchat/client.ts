@@ -216,6 +216,7 @@ export async function uploadFile(
     tmid?: string;
   },
 ): Promise<RocketChatMessage> {
+  // Step 1: Upload via rooms.media
   const form = new FormData();
   const bytes = Uint8Array.from(params.buffer);
   const blob = params.contentType
@@ -229,8 +230,8 @@ export async function uploadFile(
     form.append("tmid", params.tmid);
   }
 
-  const url = `${client.apiBaseUrl}/rooms.upload/${encodeURIComponent(params.roomId)}`;
-  const res = await fetch(url, {
+  const uploadUrl = `${client.apiBaseUrl}/rooms.media/${encodeURIComponent(params.roomId)}`;
+  const uploadRes = await fetch(uploadUrl, {
     method: "POST",
     headers: {
       "X-Auth-Token": client.authToken,
@@ -238,19 +239,70 @@ export async function uploadFile(
     },
     body: form,
   });
-
-  if (!res.ok) {
-    const detail = await readRocketChatError(res);
+  if (!uploadRes.ok) {
+    const detail = await readRocketChatError(uploadRes);
     throw new Error(
-      `Rocket.Chat API ${res.status} ${res.statusText}: ${detail || "unknown error"}`,
+      `Rocket.Chat API ${uploadRes.status} ${uploadRes.statusText}: ${detail || "unknown error"}`,
     );
   }
+  const uploadData = (await uploadRes.json()) as { file?: { _id: string; url: string }; success?: boolean };
+  if (!uploadData.success || !uploadData.file?.url) {
+    throw new Error("Rocket.Chat file upload failed: no file URL returned");
+  }
 
-  const data = (await res.json()) as { message?: RocketChatMessage };
-  if (!data.message) {
+  // Step 2: Determine attachment type and absolute URL
+  const mimeType = params.contentType ?? "";
+  const fileName = params.fileName ?? "";
+  const isAudio = mimeType.startsWith("audio/") || /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(fileName);
+  const isVideo = mimeType.startsWith("video/") || /\.(mp4|webm|mov|avi|mkv)$/i.test(fileName);
+  const isImage = mimeType.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(fileName);
+
+  const absoluteUrl = uploadData.file.url.startsWith("http")
+    ? uploadData.file.url
+    : `${client.baseUrl}${uploadData.file.url}`;
+
+  const attachment: Record<string, unknown> = {
+    title: fileName,
+    type: "file",
+  };
+  if (isAudio) {
+    attachment.audio_url = absoluteUrl;
+  } else if (isVideo) {
+    attachment.video_url = absoluteUrl;
+  } else if (isImage) {
+    attachment.image_url = absoluteUrl;
+  } else {
+    attachment.title_link = absoluteUrl;
+    attachment.title_link_download = true;
+  }
+
+  // Step 3: Post message with attachment
+  const msgUrl = `${client.apiBaseUrl}/chat.postMessage`;
+  const msgRes = await fetch(msgUrl, {
+    method: "POST",
+    headers: {
+      "X-Auth-Token": client.authToken,
+      "X-User-Id": client.userId,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      roomId: params.roomId,
+      text: params.description ?? "",
+      tmid: params.tmid ?? undefined,
+      attachments: [attachment],
+    }),
+  });
+  if (!msgRes.ok) {
+    const detail = await readRocketChatError(msgRes);
+    throw new Error(
+      `Rocket.Chat API ${msgRes.status} ${msgRes.statusText}: ${detail || "unknown error"}`,
+    );
+  }
+  const msgData = (await msgRes.json()) as { message?: RocketChatMessage };
+  if (!msgData.message) {
     throw new Error("Rocket.Chat file upload failed: no message returned");
   }
-  return data.message;
+  return msgData.message;
 }
 
 export async function createDirectMessage(
