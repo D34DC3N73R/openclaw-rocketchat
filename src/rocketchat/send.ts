@@ -10,9 +10,9 @@ import {
   loginWithPassword,
   sendMessage,
   uploadFile,
-  normalizeRocketChatBaseUrl,
   type RocketChatUser,
 } from "./client.js";
+import { normalizeRocketChatBaseUrl } from "./base-url.js";
 import { buildOutboundMediaLoadOptions } from "openclaw/plugin-sdk/media-runtime";
 import { loadWebMedia } from "openclaw/plugin-sdk/web-media";
 

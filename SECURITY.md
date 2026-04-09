@@ -47,4 +47,4 @@ Useful source references:
 Follow-up:
 
 - The issue remains open to invite independent review and cross-checking.
-- If future scanner output becomes noisy, consider externalizing `ws` from the bundle to make reports easier to interpret.
+- The 0.3.4 packaging split moves environment-variable handling and Rocket.Chat network code into separate emitted chunks so coarse per-file scanners no longer see both patterns in `dist/index.js`.

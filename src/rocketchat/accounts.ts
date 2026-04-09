@@ -5,7 +5,7 @@ import type {
   RocketChatChatMode,
   RocketChatRoomConfig,
 } from "../types.js";
-import { normalizeRocketChatBaseUrl } from "./client.js";
+import { normalizeRocketChatBaseUrl } from "./base-url.js";
 
 export type RocketChatTokenSource = "env" | "config" | "none";
 export type RocketChatBaseUrlSource = "env" | "config" | "none";

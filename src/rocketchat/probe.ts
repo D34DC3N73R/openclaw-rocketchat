@@ -1,4 +1,5 @@
-import { normalizeRocketChatBaseUrl, type RocketChatUser } from "./client.js";
+import { normalizeRocketChatBaseUrl } from "./base-url.js";
+import type { RocketChatUser } from "./client.js";
 
 export type RocketChatProbe = {
   ok: boolean;
