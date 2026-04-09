@@ -34,11 +34,11 @@ import {
   fetchUser,
   sendTyping,
   loginWithPassword,
-  normalizeRocketChatBaseUrl,
   type RocketChatRoom,
   type RocketChatMessage,
   type RocketChatUser,
 } from "./client.js";
+import { normalizeRocketChatBaseUrl } from "./base-url.js";
 import { createRealtimeConnection } from "./realtime.js";
 import { runWithReconnect } from "./reconnect.js";
 import { sendMessageRocketChat } from "./send.js";

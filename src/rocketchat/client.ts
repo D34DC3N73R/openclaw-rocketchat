@@ -1,3 +1,5 @@
+import { normalizeRocketChatBaseUrl } from "./base-url.js";
+
 export type RocketChatClient = {
   baseUrl: string;
   apiBaseUrl: string;
@@ -49,14 +51,6 @@ export type RocketChatFileInfo = {
   size?: number | null;
   url?: string | null;
 };
-
-export function normalizeRocketChatBaseUrl(raw?: string | null): string | undefined {
-  const trimmed = raw?.trim();
-  if (!trimmed) {
-    return undefined;
-  }
-  return trimmed.replace(/\/+$/, "").replace(/\/api\/v1$/i, "");
-}
 
 function buildApiUrl(baseUrl: string, path: string): string {
   const normalized = normalizeRocketChatBaseUrl(baseUrl);

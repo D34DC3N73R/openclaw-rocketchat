@@ -12,7 +12,7 @@ import {
   resolveDefaultRocketChatAccountId,
   resolveRocketChatAccount,
 } from "./rocketchat/accounts.js";
-import { normalizeRocketChatBaseUrl } from "./rocketchat/client.js";
+import { normalizeRocketChatBaseUrl } from "./rocketchat/base-url.js";
 
 const channel = "rocketchat" as const;
 const AUTH_MODE_INPUT_KEY = "authMode" as keyof ChannelSetupInput;

@@ -19,11 +19,8 @@ import {
   resolveRocketChatAccount,
   type ResolvedRocketChatAccount,
 } from "./rocketchat/accounts.js";
-import { loginWithPassword, normalizeRocketChatBaseUrl } from "./rocketchat/client.js";
-import { monitorRocketChatProvider } from "./rocketchat/monitor.js";
+import { normalizeRocketChatBaseUrl } from "./rocketchat/base-url.js";
 import { rocketchatSetupWizard } from "./onboarding.js";
-import { probeRocketChat } from "./rocketchat/probe.js";
-import { sendMessageRocketChat } from "./rocketchat/send.js";
 import { looksLikeRocketChatTargetId, normalizeRocketChatMessagingTarget } from "./normalize.js";
 import { getRocketChatRuntime } from "./runtime.js";
 import { Type } from "@sinclair/typebox";
@@ -90,6 +87,7 @@ const rocketchatMessageActions: ChannelMessageActionAdapter = {
       return { content: [{ type: "text", text: "to is required" }], details: null };
     }
     const mediaSource = params.path?.trim() || params.mediaUrl?.trim() || undefined;
+    const { sendMessageRocketChat } = await import("./rocketchat/send.js");
     const result = await sendMessageRocketChat(to, params.message ?? "", {
       accountId: params.accountId ?? ctx.accountId ?? undefined,
       replyToId: params.threadId ?? undefined,
@@ -212,6 +210,7 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
       return { ok: true, to: trimmed };
     },
     sendText: async ({ to, text, accountId, replyToId }) => {
+      const { sendMessageRocketChat } = await import("./rocketchat/send.js");
       const result = await sendMessageRocketChat(to, text, {
         accountId: accountId ?? undefined,
         replyToId: replyToId ?? undefined,
@@ -219,6 +218,7 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
       return { channel: "rocketchat", ...result };
     },
     sendMedia: async ({ to, text, mediaUrl, mediaAccess, mediaLocalRoots, mediaReadFile, accountId, replyToId }) => {
+      const { sendMessageRocketChat } = await import("./rocketchat/send.js");
       const result = await sendMessageRocketChat(to, text, {
         accountId: accountId ?? undefined,
         mediaUrl,
@@ -262,6 +262,7 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
       const token = account.authToken?.trim();
       const uid = account.userId?.trim();
       if (token && uid) {
+        const { probeRocketChat } = await import("./rocketchat/probe.js");
         return await probeRocketChat(baseUrl, token, uid, timeoutMs);
       }
 
@@ -275,6 +276,10 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
       }
 
       try {
+        const [{ loginWithPassword }, { probeRocketChat }] = await Promise.all([
+          import("./rocketchat/client.js"),
+          import("./rocketchat/probe.js"),
+        ]);
         const login = await loginWithPassword({ baseUrl, username, password });
         return await probeRocketChat(baseUrl, login.authToken, login.userId, timeoutMs);
       } catch (err) {
@@ -394,6 +399,7 @@ export const rocketchatPlugin: ChannelPlugin<ResolvedRocketChatAccount> = {
         tokenSource: account.authTokenSource,
       });
       ctx.log?.info(`[${account.accountId}] starting channel`);
+      const { monitorRocketChatProvider } = await import("./rocketchat/monitor.js");
       return monitorRocketChatProvider({
         authToken: account.authToken ?? undefined,
         userId: account.userId ?? undefined,
