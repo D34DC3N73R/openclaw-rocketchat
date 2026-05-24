@@ -1,0 +1,66 @@
+name: Publish to npm
+
+# OIDC + provenance publish triggered by version tag.
+# Requires npm trusted publisher configured for:
+#   - org/scope: @d34dc3n73r
+#   - repo: D34DC3N73R/openclaw-rocketchat
+#   - workflow: .github/workflows/publish.yml
+#   - environment: (none)
+# Setup: https://docs.npmjs.com/trusted-publishers
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write   # required for npm OIDC
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: npm-publish
+      url: https://www.npmjs.com/package/@d34dc3n73r/openclaw-rocketchat
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js (LTS)
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+
+      # Validate version tag matches package.json version
+      - name: Verify tag matches package version
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          PKG_VERSION=$(jq -r .version package.json)
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag v$TAG_VERSION does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+          echo "Tag v$TAG_VERSION matches package.json version $PKG_VERSION"
+
+      # Layer 1: install without third-party lifecycle scripts
+      - name: Install dependencies (ignore-scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      # Layer 3: lockfile integrity gate
+      - name: Lint lockfile
+        run: npm run lint:lockfile
+
+      # Our own build is trusted; prepack runs build + manifest:schema
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      # OIDC + provenance publish
+      - name: Publish to npm with provenance
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
