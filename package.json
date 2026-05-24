@@ -1,16 +1,16 @@
 {
-  "name": "@alexwoo-awso/openclaw-rocketchat",
-  "version": "0.3.9",
-  "description": "OpenClaw Rocket.Chat channel plugin",
+  "name": "@d34dc3n73r/openclaw-rocketchat",
+  "version": "0.4.0",
+  "description": "OpenClaw Rocket.Chat channel plugin — Maintained fork by D34DC3N73R",
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/alexwoo-awso/openclaw-rocketchat.git"
+    "url": "git+https://github.com/D34DC3N73R/openclaw-rocketchat.git"
   },
-  "homepage": "https://github.com/alexwoo-awso/openclaw-rocketchat#readme",
+  "homepage": "https://github.com/D34DC3N73R/openclaw-rocketchat#readme",
   "bugs": {
-    "url": "https://github.com/alexwoo-awso/openclaw-rocketchat/issues"
+    "url": "https://github.com/D34DC3N73R/openclaw-rocketchat/issues"
   },
   "files": [
     "dist",
@@ -76,5 +76,9 @@
       "localPath": "extensions/rocketchat",
       "defaultChoice": "npm"
     }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

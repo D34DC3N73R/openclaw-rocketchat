@@ -2,7 +2,9 @@
 
 Channel plugin for connecting OpenClaw to [Rocket.Chat](https://rocket.chat/) instances.
 
-**npm package:** `@alexwoo-awso/openclaw-rocketchat`
+**npm package:** `@d34dc3n73r/openclaw-rocketchat`
+
+> **Maintained fork.** This package is a maintained fork of [`@alexwoo-awso/openclaw-rocketchat`](https://github.com/alexwoo-awso/openclaw-rocketchat) (MIT). The upstream is currently inactive; this fork incorporates compatibility fixes for OpenClaw 2026.5.x (upstream [PR #18](https://github.com/alexwoo-awso/openclaw-rocketchat/pull/18)), the `channelConfigs` manifest fix ([upstream issue #19](https://github.com/alexwoo-awso/openclaw-rocketchat/issues/19)), and supply-chain hardening (pinned deps, lockfile-lint, OIDC + provenance publish). Source: [D34DC3N73R/openclaw-rocketchat](https://github.com/D34DC3N73R/openclaw-rocketchat).
 
 ## Features
 
