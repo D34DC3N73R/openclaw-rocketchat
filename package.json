@@ -28,13 +28,15 @@
     "prepack": "npm run build && npm run manifest:schema",
     "manifest:schema": "node --import tsx scripts/generate-manifest-schema.ts",
     "lint": "echo 'lint: not configured'",
-    "test": "node --import tsx --test test/**/*.test.ts"
+    "test": "node --import tsx --test test/**/*.test.ts",
+    "lint:lockfile": "lockfile-lint"
   },
   "devDependencies": {
     "tsup": "8.5.1",
     "tsx": "4.21.0",
     "typescript": "5.9.3",
-    "zod": "4.3.6"
+    "zod": "4.3.6",
+    "lockfile-lint": "5.0.0"
   },
   "dependencies": {
     "openclaw": "2026.4.23",
